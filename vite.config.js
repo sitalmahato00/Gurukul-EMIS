@@ -1,16 +1,34 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: ['resources/css/app.css', 'resources/js/main.tsx'],
             refresh: true,
         }),
+        react(),
         tailwindcss(),
     ],
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './resources/js'),
+        },
+    },
     server: {
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8000',
+                changeOrigin: true,
+            },
+            '/sanctum': {
+                target: 'http://localhost:8000',
+                changeOrigin: true,
+            },
+        },
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
