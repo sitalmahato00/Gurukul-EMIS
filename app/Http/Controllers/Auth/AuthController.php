@@ -149,4 +149,52 @@ class AuthController extends Controller
             'message' => 'Password changed successfully.',
         ]);
     }
+
+    public function sessions(Request $request): JsonResponse
+    {
+        $tokens = $request->user()->tokens()->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $tokens->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'last_used' => $t->last_used_at,
+                'created_at' => $t->created_at,
+                'is_current' => $t->id === $request->user()->currentAccessToken()->id,
+            ]),
+            'message' => 'Sessions retrieved successfully.',
+        ]);
+    }
+
+    public function revokeSession(Request $request, $tokenId): JsonResponse
+    {
+        $token = $request->user()->tokens()->findOrFail($tokenId);
+
+        if ($token->id === $request->user()->currentAccessToken()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot revoke your current session.',
+            ], 422);
+        }
+
+        $token->delete();
+
+        return response()->json([
+            'success' => true,
+            'data' => null,
+            'message' => 'Session revoked successfully.',
+        ]);
+    }
+
+    public function revokeAllSessions(Request $request): JsonResponse
+    {
+        $request->user()->tokens()->where('id', '!=', $request->user()->currentAccessToken()->id)->delete();
+
+        return response()->json([
+            'success' => true,
+            'data' => null,
+            'message' => 'All other sessions revoked successfully.',
+        ]);
+    }
 }

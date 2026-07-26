@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   Clock,
   Pause,
+  UserCircle,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -91,6 +92,12 @@ const navGroups: NavGroup[] = [
     title: "Support",
     items: [
       { label: "Support Tickets", href: "/super-admin/support", icon: HeadphonesIcon, badge: "3" },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { label: "Profile", href: "/super-admin/profile", icon: UserCircle },
     ],
   },
 ]

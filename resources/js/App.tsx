@@ -44,6 +44,7 @@ import { UserManagementPage } from "@/modules/super-admin/pages/users"
 import { ApiKeysPage } from "@/modules/super-admin/pages/api-keys"
 import { AdminNotificationsPage } from "@/modules/super-admin/pages/notifications"
 import { SupportTicketsPage, SupportTicketFormPage, SupportTicketViewPage } from "@/modules/super-admin/pages/support"
+import { ProfilePage as SuperAdminProfilePage } from "@/modules/super-admin/pages/profile"
 
 // School Admin Pages
 import { SchoolProfilePage } from "@/modules/school-admin/pages/profile"
@@ -302,6 +303,7 @@ function App() {
                 <Route path="support/new" element={<SupportTicketFormPage />} />
                 <Route path="support/:ticketId" element={<SupportTicketViewPage />} />
                 <Route path="support/:ticketId/edit" element={<SupportTicketFormPage />} />
+                <Route path="profile" element={<SuperAdminProfilePage />} />
               </Route>
 
               {/* School Admin */}

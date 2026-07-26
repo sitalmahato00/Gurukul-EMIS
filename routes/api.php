@@ -51,6 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::get('/sessions', [AuthController::class, 'sessions']);
+    Route::post('/sessions/{tokenId}/revoke', [AuthController::class, 'revokeSession']);
+    Route::post('/sessions/revoke-all', [AuthController::class, 'revokeAllSessions']);
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);

@@ -957,3 +957,55 @@ export function usePostAction(path: string) {
     onSuccess: () => qc.invalidateQueries(),
   })
 }
+
+// ─── Profile ───────────────────────────────────────
+export function useUpdateProfile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: any) => api.put("/profile", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
+  })
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: { current_password: string; password: string; password_confirmation: string }) =>
+      api.post("/change-password", data),
+  })
+}
+
+export function usePersonalAccessTokens() {
+  return useQuery({
+    queryKey: ["personal-access-tokens"],
+    queryFn: async () => {
+      const res = await api.get<any>("/settings")
+      return res.data
+    },
+  })
+}
+
+export function useSessions() {
+  return useQuery({
+    queryKey: ["sessions"],
+    queryFn: async () => {
+      const res = await api.get<any>("/sessions")
+      return res.data
+    },
+  })
+}
+
+export function useRevokeSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (tokenId: number | string) => api.post(`/sessions/${tokenId}/revoke`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions"] }),
+  })
+}
+
+export function useRevokeAllSessions() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post("/sessions/revoke-all"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions"] }),
+  })
+}
