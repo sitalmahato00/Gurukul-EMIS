@@ -43,7 +43,7 @@ import { RevenueAnalyticsPage } from "@/modules/super-admin/pages/analytics"
 import { UserManagementPage } from "@/modules/super-admin/pages/users"
 import { ApiKeysPage } from "@/modules/super-admin/pages/api-keys"
 import { AdminNotificationsPage } from "@/modules/super-admin/pages/notifications"
-import { SupportTicketsPage } from "@/modules/super-admin/pages/support"
+import { SupportTicketsPage, SupportTicketFormPage, SupportTicketViewPage } from "@/modules/super-admin/pages/support"
 
 // School Admin Pages
 import { SchoolProfilePage } from "@/modules/school-admin/pages/profile"
@@ -299,6 +299,9 @@ function App() {
                 <Route path="api-keys" element={<ApiKeysPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
                 <Route path="support" element={<SupportTicketsPage />} />
+                <Route path="support/new" element={<SupportTicketFormPage />} />
+                <Route path="support/:ticketId" element={<SupportTicketViewPage />} />
+                <Route path="support/:ticketId/edit" element={<SupportTicketFormPage />} />
               </Route>
 
               {/* School Admin */}

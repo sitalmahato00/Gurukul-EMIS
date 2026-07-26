@@ -22,12 +22,14 @@ class SupportTicket extends Model
         'assigned_to',
         'message_count',
         'last_message',
+        'images',
     ];
 
     protected function casts(): array
     {
         return [
             'message_count' => 'integer',
+            'images' => 'array',
         ];
     }
 

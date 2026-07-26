@@ -58,7 +58,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Super Admin only
     Route::middleware('role:super_admin')->group(function () {
         Route::apiResource('schools', SchoolController::class);
-        Route::apiResource('api-keys', ApiKeyController::class)->only(['index', 'store', 'show', 'destroy']);
+        Route::apiResource('api-keys', ApiKeyController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::post('api-keys/{apiKey}/toggle-status', [ApiKeyController::class, 'toggleStatus']);
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
         Route::get('backups/download/latest', [BackupController::class, 'downloadLatest']);
         Route::get('backups/{backup}/download', [BackupController::class, 'download']);
@@ -66,7 +67,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('backups', BackupController::class)->only(['index', 'store', 'show', 'destroy']);
         Route::apiResource('support-tickets', SupportTicketController::class);
         Route::apiResource('subscription-plans', SubscriptionPlanController::class);
-        Route::apiResource('admin/users', UserController::class)->only(['index', 'show', 'update', 'destroy']);
+        Route::apiResource('admin/users', UserController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::post('/admin/users/{user}/reset-password', [UserController::class, 'resetPassword']);
+        Route::post('/admin/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
         Route::get('/analytics', [PlatformAnalyticsController::class, 'index']);
         Route::get('/school-usage', [SchoolUsageController::class, 'index']);
         Route::get('/system-logs', [SystemLogController::class, 'index']);

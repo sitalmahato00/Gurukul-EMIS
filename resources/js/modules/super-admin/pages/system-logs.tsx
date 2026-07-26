@@ -22,7 +22,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import { useState, useCallback } from "react"
+import { TablePagination } from "@/components/shared/table-pagination"
+import { useState, useCallback, useMemo } from "react"
 import { useSystemLogs } from "@/lib/hooks"
 import { toast } from "sonner"
 
@@ -54,6 +55,8 @@ export function SystemLogsPage() {
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [searchInput, setSearchInput] = useState("")
+  const [page, setPage] = useState(1)
+  const perPage = 25
 
   const { data, isLoading, refetch, isFetching } = useSystemLogs({
     level: activeTab,
@@ -64,8 +67,12 @@ export function SystemLogsPage() {
   const logs = data?.logs || []
   const summary = data?.summary || { total: 0, info: 0, warning: 0, error: 0, critical: 0 }
 
+  const totalPages = Math.ceil(logs.length / perPage)
+  const paginatedLogs = useMemo(() => logs.slice((page - 1) * perPage, page * perPage), [logs, page, perPage])
+
   const handleSearch = useCallback(() => {
     setSearchQuery(searchInput)
+    setPage(1)
   }, [searchInput])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -188,7 +195,7 @@ export function SystemLogsPage() {
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {logs.length} entries
+                {paginatedLogs.length} of {logs.length} entries
               </span>
             </div>
           </div>
@@ -196,7 +203,7 @@ export function SystemLogsPage() {
       </Card>
 
       {/* Log Level Tabs + Log List */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1) }}>
         <TabsList className="rounded-xl">
           <TabsTrigger value="all" className="rounded-lg gap-1.5">
             All
@@ -242,8 +249,9 @@ export function SystemLogsPage() {
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
               ) : (
+                <>
                 <div className="space-y-1">
-                  {logs.map((log: any, index: number) => {
+                  {paginatedLogs.map((log: any, index: number) => {
                     const cfg = levelConfig[log.level] || levelConfig.info
                     const LevelIcon = cfg.icon
                     const SourceIcon = sourceIcons[log.source] || Server
@@ -297,6 +305,17 @@ export function SystemLogsPage() {
                     </div>
                   )}
                 </div>
+
+                {totalPages > 1 && (
+                  <TablePagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={logs.length}
+                    perPage={perPage}
+                    onPageChange={setPage}
+                  />
+                )}
+                </>
               )}
             </CardContent>
           </Card>

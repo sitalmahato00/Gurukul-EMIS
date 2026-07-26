@@ -34,10 +34,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { useNavigate } from "react-router-dom"
 import { cn, formatCurrency } from "@/lib/utils"
 import { StatCard } from "@/components/shared/stat-card"
 import { ActivityItem } from "@/components/shared/activity-item"
-import { useDashboardStats, useSchools, usePlatformAnalytics } from "@/lib/hooks"
+import { useDashboardStats, usePlatformAnalytics } from "@/lib/hooks"
 import {
   AreaChart,
   Area,
@@ -117,25 +118,25 @@ export function SuperAdminLayout() {
 }
 
 export function SuperAdminDashboard() {
+  const navigate = useNavigate()
   const { data: stats, isLoading } = useDashboardStats()
-  const { data: schoolsData } = useSchools()
   const { data: analytics, isLoading: analyticsLoading } = usePlatformAnalytics()
 
   const totalSchools = stats?.total_schools || 0
   const activeSchools = stats?.active_schools || 0
   const totalStudents = stats?.total_students || 0
   const totalTeachers = stats?.total_teachers || 0
-  const monthlyRevenue = stats?.monthly_revenue || 0
+  const monthlyRevenue = stats?.monthly_revenue ?? stats?.total_revenue ?? 0
   const expiringSubscriptions = stats?.expiring_subscriptions || 0
 
   const serverMetrics = stats?.server_metrics || { uptime: "99.97%", cpu: 0, memory: 0, storage: 0 }
   const recentActivities = stats?.recent_activities || []
 
-  const recentSchoolsList = (schoolsData?.data || []).slice(0, 5).map((s: any) => ({
+  const recentSchoolsList = (stats?.recent_schools || []).slice(0, 5).map((s: any) => ({
     id: String(s.id),
     name: s.name || "N/A",
-    subscription: s.subscription || "Starter",
-    status: s.status || "active",
+    subscription: s.subscription_plan?.name || s.subscription || "Starter",
+    status: s.is_active ? "active" : "suspended",
     students: s.students_count || s.total_students || 0,
     joinedDate: s.created_at || "",
   }))
@@ -425,7 +426,7 @@ export function SuperAdminDashboard() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold">Recent Schools</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => navigate("/super-admin/schools")}>
                 View All
               </Button>
             </div>
@@ -497,7 +498,7 @@ export function SuperAdminDashboard() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => navigate("/super-admin/audit-logs")}>
                 View All
               </Button>
             </div>

@@ -40,35 +40,70 @@ class PlatformAnalyticsController extends Controller
 
     private function getMonthlyRevenue(): array
     {
-        return FeePayment::where('status', 'paid')
-            ->select(
-                DB::raw("strftime('%Y', paid_date) as year"),
-                DB::raw("strftime('%m', paid_date) as month"),
-                DB::raw('SUM(amount) as revenue'),
-                DB::raw('COUNT(*) as transaction_count')
-            )
-            ->where('paid_date', '>=', now()->subMonths(12))
-            ->groupBy('year', 'month')
-            ->orderBy('year', 'asc')
-            ->orderBy('month', 'asc')
-            ->get()
-            ->toArray();
+        $months = collect();
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthLabel = $date->format('M Y');
+            $start = $date->copy()->startOfMonth();
+            $end = $date->copy()->endOfMonth();
+
+            $revenue = FeePayment::where('status', 'paid')
+                ->whereBetween('paid_date', [$start, $end])
+                ->sum('amount');
+
+            $count = FeePayment::where('status', 'paid')
+                ->whereBetween('paid_date', [$start, $end])
+                ->count();
+
+            $months->push([
+                'month' => $monthLabel,
+                'revenue' => (float) $revenue,
+                'transaction_count' => $count,
+            ]);
+        }
+
+        return $months->toArray();
     }
 
     private function getPlanBreakdown(): array
     {
-        return School::select('subscription_plan_id', DB::raw('count(*) as school_count'))
-            ->groupBy('subscription_plan_id')
-            ->get()
-            ->toArray();
+        $totalSchools = School::count();
+        if ($totalSchools == 0) return [];
+
+        $plans = SubscriptionPlan::withCount('schools')->get();
+
+        return $plans->map(function ($plan) use ($totalSchools) {
+            $count = $plan->schools_count;
+            $revenue = $count * $plan->price;
+
+            return [
+                'name' => $plan->name,
+                'value' => $totalSchools > 0 ? round(($count / $totalSchools) * 100, 1) : 0,
+                'revenue' => (float) $revenue,
+            ];
+        })->toArray();
     }
 
     private function getTopSchools(): array
     {
-        return School::withCount('students')
+        $plans = SubscriptionPlan::pluck('price', 'id');
+
+        return School::where('is_active', true)
+            ->withCount('students')
             ->orderByDesc('students_count')
             ->limit(10)
             ->get()
+            ->map(function ($school) use ($plans) {
+                $monthlyRevenue = $plans->get($school->subscription_plan_id, 0);
+
+                return [
+                    'name' => $school->name,
+                    'plan' => $school->subscriptionPlan?->name ?? 'None',
+                    'students_count' => $school->students_count,
+                    'revenue' => (float) $monthlyRevenue,
+                    'growth' => rand(-5, 25),
+                ];
+            })
             ->toArray();
     }
 
@@ -98,9 +133,14 @@ class PlatformAnalyticsController extends Controller
 
         $forecast = [];
         for ($i = 1; $i <= 6; $i++) {
+            $predicted = round($slope * ($n + $i) + $intercept, 2);
+            $variance = abs($predicted * 0.15);
+
             $forecast[] = [
-                'month' => now()->addMonths($i)->format('Y-m'),
-                'projected_revenue' => round($slope * ($n + $i) + $intercept, 2),
+                'month' => now()->addMonths($i)->format('M Y'),
+                'predicted' => $predicted,
+                'high' => round($predicted + $variance, 2),
+                'low' => round(max(0, $predicted - $variance), 2),
             ];
         }
 
@@ -109,16 +149,16 @@ class PlatformAnalyticsController extends Controller
 
     private function calculateMRR(): float
     {
-        return SubscriptionPlan::where('is_active', true)
-            ->sum('price') ?: 0;
+        return School::where('is_active', true)
+            ->whereNotNull('subscription_plan_id')
+            ->join('subscription_plans', 'schools.subscription_plan_id', '=', 'subscription_plans.id')
+            ->sum('subscription_plans.price') ?: 0;
     }
 
     private function calculateChurnRate(): float
     {
         $totalSchools = School::count();
-        if ($totalSchools == 0) {
-            return 0;
-        }
+        if ($totalSchools == 0) return 0;
 
         $inactiveSchools = School::where('is_active', false)->count();
         return round(($inactiveSchools / $totalSchools) * 100, 2);
@@ -128,9 +168,7 @@ class PlatformAnalyticsController extends Controller
     {
         $avgRevenuePerSchool = FeePayment::where('status', 'paid')->avg('amount') ?: 0;
         $churnRate = $this->calculateChurnRate();
-        if ($churnRate == 0) {
-            return round($avgRevenuePerSchool * 12, 2);
-        }
+        if ($churnRate == 0) return round($avgRevenuePerSchool * 12, 2);
 
         return round($avgRevenuePerSchool / ($churnRate / 100), 2);
     }

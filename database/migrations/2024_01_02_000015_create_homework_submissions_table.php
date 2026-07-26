@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('homework_submissions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('homework_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('homework_id')->constrained('homeworks')->cascadeOnDelete();
+            $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
             $table->text('content')->nullable();
             $table->string('file_path')->nullable();
             $table->enum('status', ['pending', 'submitted', 'graded'])->default('pending');

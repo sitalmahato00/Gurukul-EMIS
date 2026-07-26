@@ -69,6 +69,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { TablePagination } from "@/components/shared/table-pagination"
 import {
   useSchools,
   useSchool,
@@ -130,7 +131,7 @@ export function SchoolsPage() {
   const deleteSchool = useDeleteSchool()
 
   const schools = data?.data || []
-  const pagination = data?.pagination || {}
+  const pagination = { total: data?.total || 0, current_page: data?.currentPage || 1, last_page: data?.lastPage || 1, per_page: 20 }
   const planList = Array.isArray(plans?.data) ? plans.data : Array.isArray(plans) ? plans : []
   const viewedSchool = schoolDetail?.data
 
@@ -872,29 +873,13 @@ export function SchoolsPage() {
                 </div>
 
                 {pagination.last_page > 1 && (
-                  <div className="flex items-center justify-between mt-4 px-1">
-                    <p className="text-sm text-muted-foreground">
-                      Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-lg" disabled={pagination.current_page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {Array.from({ length: Math.min(pagination.last_page, 5) }, (_, i) => {
-                        const start = Math.max(1, Math.min(pagination.current_page - 2, pagination.last_page - 4))
-                        const p = start + i
-                        if (p > pagination.last_page) return null
-                        return (
-                          <Button key={p} variant={p === pagination.current_page ? "default" : "outline"} size="sm" className={cn("h-8 w-8 p-0 rounded-lg text-xs", p === pagination.current_page && "bg-violet-500 hover:bg-violet-600 text-white")} onClick={() => setPage(p)}>
-                            {p}
-                          </Button>
-                        )
-                      })}
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-lg" disabled={pagination.current_page >= pagination.last_page} onClick={() => setPage((p) => Math.min(pagination.last_page, p + 1))}>
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  <TablePagination
+                    currentPage={pagination.current_page}
+                    totalPages={pagination.last_page}
+                    totalItems={pagination.total}
+                    perPage={pagination.per_page}
+                    onPageChange={setPage}
+                  />
                 )}
               </>
             )}

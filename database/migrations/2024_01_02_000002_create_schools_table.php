@@ -25,13 +25,24 @@ return new class extends Migration
             $table->string('medium')->nullable();
             $table->string('timezone')->default('Asia/Kolkata');
             $table->boolean('is_active')->default(true);
+            $table->unsignedBigInteger('subscription_plan_id')->nullable();
+            $table->date('subscription_starts_at')->nullable();
+            $table->date('subscription_ends_at')->nullable();
+            $table->decimal('custom_price', 10, 2)->nullable();
             $table->json('settings')->nullable();
             $table->timestamps();
+        });
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreign('school_id')->references('id')->on('schools')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['school_id']);
+        });
         Schema::dropIfExists('schools');
     }
 };

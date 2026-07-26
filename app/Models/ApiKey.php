@@ -15,8 +15,10 @@ class ApiKey extends Model
         'name',
         'key',
         'school_id',
+        'device_type',
         'rate_limit',
         'status',
+        'description',
         'last_used_at',
         'total_calls',
     ];

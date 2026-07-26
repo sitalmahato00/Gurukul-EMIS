@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { NavLink, useLocation, Outlet } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -18,8 +18,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog"
 import {
   Tooltip,
@@ -42,9 +40,11 @@ import {
   Command,
   PanelLeftClose,
   PanelLeft,
+  Clock,
 } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 import { ROLE_LABELS, type UserRole } from "@/shared/types"
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/lib/hooks"
 
 export interface NavItem {
   label: string
@@ -65,12 +65,6 @@ interface PortalLayoutProps {
   LogoIcon?: React.ComponentType<{ className?: string }>
   children?: React.ReactNode
 }
-
-const notifications = [
-  { id: "1", title: "Fee Reminder", message: "15 students have pending fees", time: "2 min ago", read: false },
-  { id: "2", title: "Exam Schedule", message: "Mid-term exams starting next week", time: "1 hour ago", read: false },
-  { id: "3", title: "New Admission", message: "5 new students admitted today", time: "3 hours ago", read: true },
-]
 
 function SidebarNavItem({
   item,
@@ -135,6 +129,22 @@ export function PortalLayout({
   const [showNotifications, setShowNotifications] = useState(false)
   const [showCommand, setShowCommand] = useState(false)
   const location = useLocation()
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  const { data: notifData } = useNotifications({ per_page: "10" })
+  const markRead = useMarkNotificationRead()
+  const markAllRead = useMarkAllNotificationsRead()
+
+  const rawNotifs = Array.isArray(notifData) ? notifData : Array.isArray(notifData?.notifications) ? notifData.notifications : Array.isArray(notifData?.notifications?.data) ? notifData.notifications.data : []
+  const unreadCount = typeof notifData?.unread_count === "number" ? notifData.unread_count : (Array.isArray(rawNotifs) ? rawNotifs.filter((n: any) => !n.read_at).length : 0)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false)
+    }
+    if (showNotifications) document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showNotifications])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -315,18 +325,21 @@ export function PortalLayout({
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground hover:text-foreground">
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative text-muted-foreground hover:text-foreground"
-              onClick={() => setShowNotifications(true)}
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-              </span>
-            </Button>
+            <div className="relative" ref={notifRef}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-muted-foreground hover:text-foreground"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </div>
             <Separator orientation="vertical" className="h-6 mx-2" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -367,29 +380,91 @@ export function PortalLayout({
         </main>
       </motion.div>
 
-      {/* Notifications */}
-      <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
-        <DialogContent className="sm:max-w-md p-0">
-          <DialogHeader className="p-6 pb-4">
-            <div className="flex items-center justify-between">
-              <DialogTitle>Notifications</DialogTitle>
-              <Button variant="ghost" size="sm" className="text-xs gap-1"><CheckCheck className="h-3 w-3" /> Mark all read</Button>
-            </div>
-          </DialogHeader>
-          <div className="px-6 pb-6 space-y-1 max-h-[400px] overflow-auto">
-            {notifications.map((n) => (
-              <div key={n.id} className={cn("flex items-start gap-3 rounded-xl p-3 hover:bg-muted cursor-pointer", !n.read && "bg-primary/5")}>
-                <div className={cn("mt-0.5 flex h-2 w-2 shrink-0 rounded-full", !n.read ? "bg-primary" : "bg-transparent")} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{n.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{n.time}</p>
-                </div>
+      <AnimatePresence>
+        {showNotifications && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed top-16 right-6 z-50 w-[380px] max-h-[480px] rounded-2xl border border-border bg-background shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold">Notifications</h3>
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1.5 text-[10px] font-semibold bg-primary/10 text-primary">
+                    {unreadCount}
+                  </Badge>
+                )}
               </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1 h-7 rounded-lg"
+                onClick={() => markAllRead.mutate()}
+                disabled={markAllRead.isPending || unreadCount === 0}
+              >
+                <CheckCheck className="h-3 w-3" />
+                Mark all read
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-2 space-y-0.5">
+              {rawNotifs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                  <Bell className="h-8 w-8 mb-2 opacity-40" />
+                  <p className="text-sm">No notifications yet</p>
+                </div>
+              ) : (
+                rawNotifs.map((n: any) => {
+                  const isUnread = !n.read_at
+                  const rawType = (n.type || "system").replace("App\\\\Notifications\\\\", "").replace("App\\Notifications\\", "").toLowerCase()
+                  const notifType = ["security", "billing", "system"].includes(rawType) ? rawType : "system"
+                  const typeColors: Record<string, string> = {
+                    security: "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+                    billing: "bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400",
+                    system: "bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
+                  }
+                  return (
+                    <div
+                      key={n.id}
+                      className={cn(
+                        "flex items-start gap-3 rounded-xl p-3 transition-colors cursor-pointer group",
+                        isUnread ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50"
+                      )}
+                      onClick={() => { if (isUnread) markRead.mutate(n.id) }}
+                    >
+                      <div className={cn("mt-0.5 flex h-2 w-2 shrink-0 rounded-full transition-colors", isUnread ? "bg-primary" : "bg-transparent")} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={cn("text-sm leading-snug", isUnread ? "font-semibold" : "font-medium")}>
+                            {n.title || "Notification"}
+                          </p>
+                          <Badge variant="secondary" className={cn("shrink-0 text-[9px] font-medium rounded-md px-1.5 py-0", typeColors[notifType])}>
+                            {notifType}
+                          </Badge>
+                        </div>
+                        {(n.data?.message || n.data?.body) && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.data?.message || n.data?.body}</p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground/70 mt-1.5 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(n.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            <div className="border-t border-border px-5 py-2.5 text-center">
+              <button className="text-xs font-medium text-primary hover:underline">
+                View all notifications
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Command Palette */}
       <Dialog open={showCommand} onOpenChange={setShowCommand}>

@@ -56,6 +56,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { cn } from "@/lib/utils"
+import { TablePagination } from "@/components/shared/table-pagination"
 import { useSchoolUsage } from "@/lib/hooks"
 
 const planColors: Record<string, { badge: string; chart: string }> = {
@@ -433,35 +434,13 @@ export function SchoolUsagePage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 px-1">
-                <p className="text-sm text-muted-foreground">
-                  Showing {(page - 1) * perPage + 1} to {Math.min(page * perPage, filtered.length)} of {filtered.length}
-                </p>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-lg" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    const start = Math.max(1, Math.min(page - 2, totalPages - 4))
-                    const p = start + i
-                    if (p > totalPages) return null
-                    return (
-                      <Button
-                        key={p}
-                        variant={p === page ? "default" : "outline"}
-                        size="sm"
-                        className={cn("h-8 w-8 p-0 rounded-lg text-xs", p === page && "bg-violet-500 hover:bg-violet-600 text-white")}
-                        onClick={() => setPage(p)}
-                      >
-                        {p}
-                      </Button>
-                    )
-                  })}
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-lg" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <TablePagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={filtered.length}
+                perPage={perPage}
+                onPageChange={setPage}
+              />
             )}
           </CardContent>
         </Card>

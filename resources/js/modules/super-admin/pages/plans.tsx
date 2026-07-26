@@ -65,6 +65,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { TablePagination } from "@/components/shared/table-pagination"
 import {
   useSubscriptionPlans,
   useCreatePlan,
@@ -106,6 +107,8 @@ export function SubscriptionPlansPage() {
   const [form, setForm] = useState(emptyForm)
   const [featureInput, setFeatureInput] = useState("")
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null)
+  const [planPage, setPlanPage] = useState(1)
+  const planPerPage = 10
 
   const plans = useMemo(() => {
     const raw = data?.data || []
@@ -577,104 +580,117 @@ export function SubscriptionPlansPage() {
                 <p className="font-medium">No plans yet</p>
                 <p className="text-sm mt-1">Create your first subscription plan</p>
               </div>
-            ) : (
-              <div className="rounded-xl border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead className="font-semibold text-foreground">Plan</TableHead>
-                      <TableHead className="font-semibold text-foreground">Price</TableHead>
-                      <TableHead className="font-semibold text-foreground">Limits</TableHead>
-                      <TableHead className="font-semibold text-foreground">Storage</TableHead>
-                      <TableHead className="font-semibold text-foreground">Subscribers</TableHead>
-                      <TableHead className="font-semibold text-foreground">Features</TableHead>
-                      <TableHead className="font-semibold text-foreground">Status</TableHead>
-                      <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {plans.map((plan: any) => {
-                      const style = getStyle(plan.name)
-                      const Icon = style.icon
-                      return (
-                        <TableRow key={plan.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => openView(plan)}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br text-white shrink-0", style.gradient)}>
-                                <Icon className="h-4.5 w-4.5" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-foreground">{plan.name}</p>
-                                  {plan.is_popular && <Badge className="text-[9px] bg-violet-100 text-violet-700 border-0">Popular</Badge>}
-                                </div>
-                                <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{plan.description || "No description"}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <span className="font-semibold text-foreground">₹{Number(plan.price).toLocaleString("en-IN")}</span>
-                              <span className="text-muted-foreground">/{plan.period}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-foreground">
-                              <span>{plan.max_schools} schools</span>
-                              <span className="text-muted-foreground"> · </span>
-                              <span>{plan.max_students?.toLocaleString()} students</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5 text-sm text-foreground">
-                              <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
-                              {plan.storage_gb} GB
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5 text-sm text-foreground">
-                              <School className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="font-medium">{plan.schools_count || 0}</span>
-                              <span className="text-muted-foreground text-xs">({plan.active_schools_count || 0} active)</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-[10px] font-semibold">{(plan.features || []).length} features</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className={cn(
-                              "text-[10px] font-semibold",
-                              plan.is_active ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                            )}>
-                              {plan.is_active ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem onClick={() => openView(plan)} className="gap-2 cursor-pointer">
-                                  <Eye className="h-4 w-4" /> View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openEdit(plan)} className="gap-2 cursor-pointer">
-                                  <Pencil className="h-4 w-4" /> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setDeleteConfirm(plan)} className="gap-2 text-destructive cursor-pointer">
-                                  <Trash2 className="h-4 w-4" /> Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
+            ) : (() => {
+              const planTotalPages = Math.ceil(plans.length / planPerPage)
+              const planPaginated = plans.slice((planPage - 1) * planPerPage, planPage * planPerPage)
+              return (
+                <>
+                  <div className="rounded-xl border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead className="font-semibold text-foreground">Plan</TableHead>
+                          <TableHead className="font-semibold text-foreground">Price</TableHead>
+                          <TableHead className="font-semibold text-foreground">Limits</TableHead>
+                          <TableHead className="font-semibold text-foreground">Storage</TableHead>
+                          <TableHead className="font-semibold text-foreground">Subscribers</TableHead>
+                          <TableHead className="font-semibold text-foreground">Features</TableHead>
+                          <TableHead className="font-semibold text-foreground">Status</TableHead>
+                          <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
                         </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+                      </TableHeader>
+                      <TableBody>
+                        {planPaginated.map((plan: any) => {
+                          const style = getStyle(plan.name)
+                          const Icon = style.icon
+                          return (
+                            <TableRow key={plan.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => openView(plan)}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br text-white shrink-0", style.gradient)}>
+                                    <Icon className="h-4.5 w-4.5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-semibold text-foreground">{plan.name}</p>
+                                      {plan.is_popular && <Badge className="text-[9px] bg-violet-100 text-violet-700 border-0">Popular</Badge>}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{plan.description || "No description"}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <span className="font-semibold text-foreground">₹{Number(plan.price).toLocaleString("en-IN")}</span>
+                                  <span className="text-muted-foreground">/{plan.period}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm text-foreground">
+                                  <span>{plan.max_schools} schools</span>
+                                  <span className="text-muted-foreground"> · </span>
+                                  <span>{plan.max_students?.toLocaleString()} students</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5 text-sm text-foreground">
+                                  <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
+                                  {plan.storage_gb} GB
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5 text-sm text-foreground">
+                                  <School className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="font-medium">{plan.schools_count || 0}</span>
+                                  <span className="text-muted-foreground text-xs">({plan.active_schools_count || 0} active)</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className="text-[10px] font-semibold">{(plan.features || []).length} features</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={cn(
+                                  "text-[10px] font-semibold",
+                                  plan.is_active ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                )}>
+                                  {plan.is_active ? "Active" : "Inactive"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-40">
+                                    <DropdownMenuItem onClick={() => openView(plan)} className="gap-2 cursor-pointer">
+                                      <Eye className="h-4 w-4" /> View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openEdit(plan)} className="gap-2 cursor-pointer">
+                                      <Pencil className="h-4 w-4" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setDeleteConfirm(plan)} className="gap-2 text-destructive cursor-pointer">
+                                      <Trash2 className="h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <TablePagination
+                    currentPage={planPage}
+                    totalPages={planTotalPages}
+                    totalItems={plans.length}
+                    perPage={planPerPage}
+                    onPageChange={setPlanPage}
+                  />
+                </>
+              )
+            })()}
           </CardContent>
         </Card>
       </motion.div>

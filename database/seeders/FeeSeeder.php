@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\{FeeStructure, FeeInstallment, FeePayment, Student};
+use App\Models\{FeeStructure, FeeInstallment};
 use Illuminate\Database\Seeder;
 
 class FeeSeeder extends Seeder
@@ -10,9 +10,6 @@ class FeeSeeder extends Seeder
     public function run(): void
     {
         $schoolId = 1;
-        $students = Student::where('school_id', $schoolId)->get();
-        $accountantId = \App\Models\User::where('school_id', $schoolId)->where('role', 'accountant')->first()?->id;
-
         $feeTypes = [
             ['name' => 'Tuition Fee', 'amount' => 5000, 'frequency' => 'monthly'],
             ['name' => 'Lab Fee', 'amount' => 2000, 'frequency' => 'quarterly'],
@@ -46,51 +43,6 @@ class FeeSeeder extends Seeder
             }
         }
 
-        // Create payment records
-        $structures = FeeStructure::where('school_id', $schoolId)->where('frequency', 'monthly')->get();
 
-        foreach ($students->take(15) as $student) {
-            $structuresForClass = $structures->where('class_id', $student->class_id);
-
-            foreach ($structuresForClass->take(2) as $structure) {
-                $installments = $structure->installments->take(2);
-
-                foreach ($installments as $installment) {
-                    FeePayment::create([
-                        'school_id' => $schoolId,
-                        'student_id' => $student->id,
-                        'fee_structure_id' => $structure->id,
-                        'installment_id' => $installment->id,
-                        'amount' => $installment->amount,
-                        'payment_method' => ['cash', 'online', 'cheque'][array_rand(['cash', 'online', 'cheque'])],
-                        'transaction_id' => 'TXN' . strtoupper(uniqid()),
-                        'receipt_number' => 'RCP' . str_pad(rand(1, 9999), 5, '0', STR_PAD_LEFT),
-                        'paid_date' => $installment->due_date->subDays(rand(0, 5)),
-                        'status' => 'paid',
-                        'recorded_by' => $accountantId,
-                    ]);
-                }
-            }
-        }
-
-        // Create some pending payments
-        foreach ($students->slice(15, 5) as $student) {
-            $structuresForClass = $structures->where('class_id', $student->class_id)->take(1);
-
-            foreach ($structuresForClass as $structure) {
-                FeePayment::create([
-                    'school_id' => $schoolId,
-                    'student_id' => $student->id,
-                    'fee_structure_id' => $structure->id,
-                    'installment_id' => $structure->installments->first()?->id,
-                    'amount' => $structure->amount,
-                    'payment_method' => 'online',
-                    'receipt_number' => 'RCP' . str_pad(rand(10000, 99999), 5, '0', STR_PAD_LEFT),
-                    'paid_date' => now(),
-                    'status' => 'pending',
-                    'recorded_by' => $accountantId,
-                ]);
-            }
-        }
     }
 }

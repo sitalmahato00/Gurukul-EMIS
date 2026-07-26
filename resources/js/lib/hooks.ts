@@ -4,10 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 // Helper to extract paginated data
 function extractPaginated(res: any): { data: any[]; total: number; currentPage: number; lastPage: number } {
   const d = res.data
+  const p = res.pagination
   if (d?.data) {
-    return { data: d.data, total: d.total || d.data.length, currentPage: d.current_page || 1, lastPage: d.last_page || 1 }
+    return { data: d.data, total: p?.total ?? d.total ?? d.data.length, currentPage: p?.current_page ?? d.current_page ?? 1, lastPage: p?.last_page ?? d.last_page ?? 1 }
   }
-  return { data: Array.isArray(d) ? d : [], total: Array.isArray(d) ? d.length : 0, currentPage: 1, lastPage: 1 }
+  return { data: Array.isArray(d) ? d : [], total: p?.total ?? (Array.isArray(d) ? d.length : 0), currentPage: p?.current_page ?? 1, lastPage: p?.last_page ?? 1 }
 }
 
 // ─── Dashboard ─────────────────────────────────────
@@ -44,6 +45,14 @@ export function useStudent(id: number | string) {
   })
 }
 
+export function useCreateStudent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: any) => api.post("/students", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["students"] }),
+  })
+}
+
 // ─── Teachers ──────────────────────────────────────
 export function useTeachers(params?: Record<string, string>) {
   const qs = params ? "?" + new URLSearchParams(params).toString() : ""
@@ -67,6 +76,14 @@ export function useTeacher(id: number | string) {
   })
 }
 
+export function useCreateTeacher() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: any) => api.post("/teachers", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["teachers"] }),
+  })
+}
+
 // ─── Parents ───────────────────────────────────────
 export function useParents(params?: Record<string, string>) {
   const qs = params ? "?" + new URLSearchParams(params).toString() : ""
@@ -76,6 +93,14 @@ export function useParents(params?: Record<string, string>) {
       const res = await api.get<any>("/parents" + qs)
       return extractPaginated(res)
     },
+  })
+}
+
+export function useCreateParent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: any) => api.post("/parents", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["parents"] }),
   })
 }
 
@@ -414,8 +439,8 @@ export function useSchools(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["schools", params],
     queryFn: async () => {
-      const res: any = await api.get<any>("/schools" + qs)
-      return { data: res.data || [], pagination: res.pagination || {} }
+      const res = await api.get<any>("/schools" + qs)
+      return extractPaginated(res)
     },
   })
 }
@@ -462,7 +487,7 @@ export function useApiKeys(params?: Record<string, string>) {
     queryKey: ["api-keys", params],
     queryFn: async () => {
       const res = await api.get<any>("/api-keys" + qs)
-      return extractPaginated(res)
+      return { ...extractPaginated(res), summary: (res as any).summary || {} }
     },
   })
 }
@@ -475,7 +500,23 @@ export function useCreateApiKey() {
   })
 }
 
-export function useRevokeApiKey() {
+export function useUpdateApiKey() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: any) => api.put(`/api-keys/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  })
+}
+
+export function useToggleApiKeyStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number | string) => api.post(`/api-keys/${id}/toggle-status`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  })
+}
+
+export function useDeleteApiKey() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number | string) => api.delete(`/api-keys/${id}`),
@@ -601,10 +642,37 @@ export function useSupportTickets(params?: Record<string, string>) {
   })
 }
 
+export function useSupportTicket(id: number | string | null) {
+  return useQuery({
+    queryKey: ["support-tickets", id],
+    queryFn: async () => {
+      const res = await api.get<any>(`/support-tickets/${id}`)
+      return res.data
+    },
+    enabled: !!id,
+  })
+}
+
+export function useCreateSupportTicket() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: any) => api.post("/support-tickets", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["support-tickets"] }),
+  })
+}
+
 export function useUpdateTicket() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: any }) => api.put(`/support-tickets/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["support-tickets"] }),
+  })
+}
+
+export function useDeleteSupportTicket() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number | string) => api.delete(`/support-tickets/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["support-tickets"] }),
   })
 }
@@ -650,9 +718,17 @@ export function useAdminUsers(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["admin-users", params],
     queryFn: async () => {
-      const res = await api.get<any>("/admin/users" + qs)
-      return extractPaginated(res)
+      const res: any = await api.get<any>("/admin/users" + qs)
+      return { ...extractPaginated(res), summary: res.summary || {} }
     },
+  })
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: any) => api.post("/admin/users", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   })
 }
 
@@ -660,6 +736,31 @@ export function useUpdateUser() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: any }) => api.put(`/admin/users/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  })
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number | string) => api.delete(`/admin/users/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  })
+}
+
+export function useResetPassword() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, password }: { id: number | string; password: string }) =>
+      api.post(`/admin/users/${id}/reset-password`, { password, password_confirmation: password }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  })
+}
+
+export function useToggleUserActive() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number | string) => api.post(`/admin/users/${id}/toggle-active`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   })
 }

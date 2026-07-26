@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class TeacherController extends Controller
 {
@@ -25,8 +28,12 @@ class TeacherController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
+        $data = $request->validate([
+            'user_id' => 'nullable|exists:users,id',
+            'name' => 'required_without:user_id|string|max:255',
+            'email' => 'required_without:user_id|email|unique:users,email',
+            'password' => 'required_without:user_id|confirmed',
+            'phone' => 'nullable|string|max:20',
             'employee_id' => 'required|string|unique:teachers,employee_id',
             'qualification' => 'nullable|string|max:255',
             'experience_years' => 'nullable|integer|min:0',
@@ -36,9 +43,32 @@ class TeacherController extends Controller
             'department' => 'nullable|string|max:100',
         ]);
 
-        $validated['school_id'] = $request->user()->school_id;
+        if (!empty($data['user_id'])) {
+            $userId = $data['user_id'];
+        } else {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'role' => 'teacher',
+                'school_id' => $request->user()->school_id,
+                'phone' => $data['phone'] ?? null,
+                'is_active' => true,
+            ]);
+            $userId = $user->id;
+        }
 
-        $teacher = Teacher::create($validated);
+        $teacher = Teacher::create([
+            'user_id' => $userId,
+            'school_id' => $request->user()->school_id,
+            'employee_id' => $data['employee_id'],
+            'qualification' => $data['qualification'] ?? null,
+            'experience_years' => $data['experience_years'] ?? null,
+            'specialization' => $data['specialization'] ?? null,
+            'joining_date' => $data['joining_date'] ?? null,
+            'salary' => $data['salary'] ?? null,
+            'department' => $data['department'] ?? null,
+        ]);
 
         return response()->json([
             'success' => true,

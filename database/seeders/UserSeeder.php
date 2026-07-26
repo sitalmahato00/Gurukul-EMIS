@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\{User, Teacher, Student, SchoolParent, Employee};
+use App\Models\{User, Teacher, Student, SchoolParent, Employee, SchoolClass};
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -12,6 +12,15 @@ class UserSeeder extends Seeder
     {
         $password = Hash::make('password');
         $schoolId = 1;
+
+        // Create classes (needed for students)
+        $classNames = ['1', '2', '3', '4', '5'];
+        foreach ($classNames as $i => $name) {
+            SchoolClass::firstOrCreate(
+                ['school_id' => $schoolId, 'name' => $name],
+                ['section' => 'A', 'capacity' => 40, 'is_active' => true]
+            );
+        }
 
         // Super Admin
         User::create([

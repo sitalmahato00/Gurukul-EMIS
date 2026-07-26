@@ -18,5 +18,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e) {
+            if (request()->expectsJson() || request()->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+            throw $e;
+        });
     })->create();

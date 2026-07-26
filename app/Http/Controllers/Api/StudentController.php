@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
 {
@@ -25,8 +27,12 @@ class StudentController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
+        $data = $request->validate([
+            'user_id' => 'nullable|exists:users,id',
+            'name' => 'required_without:user_id|string|max:255',
+            'email' => 'required_without:user_id|email|unique:users,email',
+            'password' => 'required_without:user_id|confirmed',
+            'phone' => 'nullable|string|max:20',
             'class_id' => 'required|exists:classes,id',
             'admission_number' => 'required|string|unique:students,admission_number',
             'admission_date' => 'required|date',
@@ -42,9 +48,38 @@ class StudentController extends Controller
             'rte' => 'nullable|boolean',
         ]);
 
-        $validated['school_id'] = $request->user()->school_id;
+        if (!empty($data['user_id'])) {
+            $userId = $data['user_id'];
+        } else {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'role' => 'student',
+                'school_id' => $request->user()->school_id,
+                'phone' => $data['phone'] ?? null,
+                'is_active' => true,
+            ]);
+            $userId = $user->id;
+        }
 
-        $student = Student::create($validated);
+        $student = Student::create([
+            'user_id' => $userId,
+            'school_id' => $request->user()->school_id,
+            'class_id' => $data['class_id'],
+            'admission_number' => $data['admission_number'],
+            'admission_date' => $data['admission_date'],
+            'roll_number' => $data['roll_number'] ?? null,
+            'date_of_birth' => $data['date_of_birth'] ?? null,
+            'gender' => $data['gender'] ?? null,
+            'blood_group' => $data['blood_group'] ?? null,
+            'address' => $data['address'] ?? null,
+            'city' => $data['city'] ?? null,
+            'state' => $data['state'] ?? null,
+            'pincode' => $data['pincode'] ?? null,
+            'aadhar_number' => $data['aadhar_number'] ?? null,
+            'rte' => $data['rte'] ?? false,
+        ]);
 
         return response()->json([
             'success' => true,

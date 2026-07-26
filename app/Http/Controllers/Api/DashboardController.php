@@ -127,7 +127,7 @@ class DashboardController extends Controller
             'total_revenue' => FeePayment::where('status', 'paid')->sum('amount'),
             'schools_this_month' => School::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)->count(),
-            'recent_schools' => School::latest()->limit(5)->get(),
+            'recent_schools' => School::with('subscriptionPlan')->withCount('students')->latest()->limit(5)->get(),
             'recent_activities' => $sortedActivities,
             'server_metrics' => [
                 'uptime' => '99.97%',

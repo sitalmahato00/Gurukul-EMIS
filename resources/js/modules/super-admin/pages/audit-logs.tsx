@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { TablePagination } from "@/components/shared/table-pagination"
 import { useState, useCallback } from "react"
 import { useAuditLogs } from "@/lib/hooks"
 import { toast } from "sonner"
@@ -322,56 +323,13 @@ export function AuditLogsPage() {
 
           {/* Pagination */}
           {total > 0 && (
-            <div className="flex items-center justify-between pt-6">
-              <p className="text-sm text-muted-foreground">
-                Showing {allLogs.length} of {total} entries
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                  let p: number
-                  if (totalPages <= 5) {
-                    p = i + 1
-                  } else if (page <= 3) {
-                    p = i + 1
-                  } else if (page >= totalPages - 2) {
-                    p = totalPages - 4 + i
-                  } else {
-                    p = page - 2 + i
-                  }
-                  return p
-                }).map((p) => (
-                  <Button
-                    key={p}
-                    variant={p === page ? "default" : "outline"}
-                    size="sm"
-                    className={cn("rounded-xl w-9 h-9", p === page && "bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md")}
-                    onClick={() => setPage(p)}
-                  >
-                    {p}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <TablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              perPage={PAGE_SIZE}
+              onPageChange={setPage}
+            />
           )}
         </CardContent>
       </Card>

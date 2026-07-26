@@ -14,9 +14,12 @@ class FeePaymentController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $schoolId = $request->user()->school_id;
-            $query = FeePayment::forSchool($schoolId)
-                ->with(['student.user', 'feeStructure', 'installment', 'recordedBy']);
+            $user = $request->user();
+            $query = FeePayment::with(['student.user', 'feeStructure', 'installment', 'recordedBy', 'school']);
+
+            if ($user->role !== 'super_admin') {
+                $query->forSchool($user->school_id);
+            }
 
             if ($request->has('student_id')) {
                 $query->where('student_id', $request->student_id);

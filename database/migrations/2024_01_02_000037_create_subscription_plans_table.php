@@ -23,10 +23,18 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
+
+        Schema::table('schools', function (Blueprint $table) {
+            $table->foreign('subscription_plan_id')->references('id')->on('subscription_plans')->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('schools', function (Blueprint $table) {
+            $table->dropForeign(['subscription_plan_id']);
+            $table->dropColumn(['subscription_plan_id', 'subscription_starts_at', 'subscription_ends_at', 'custom_price']);
+        });
         Schema::dropIfExists('subscription_plans');
     }
 };

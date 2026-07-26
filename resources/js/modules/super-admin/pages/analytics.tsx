@@ -10,12 +10,14 @@ import {
   Calendar,
   Zap,
 } from "lucide-react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn, formatCurrency, formatNumber } from "@/lib/utils"
 import { StatCard } from "@/components/shared/stat-card"
+import { TablePagination } from "@/components/shared/table-pagination"
 import {
   AreaChart,
   Area,
@@ -45,6 +47,8 @@ const COLORS = ["#7c3aed", "#a855f7", "#c4b5fd", "#6366f1", "#818cf8"]
 
 export function RevenueAnalyticsPage() {
   const { data: analytics, isLoading } = usePlatformAnalytics()
+  const [topPage, setTopPage] = useState(1)
+  const topPerPage = 8
 
   const monthlyRevenue = (analytics?.monthly_revenue || []).map((item: any) => ({
     month: item.month,
@@ -418,91 +422,111 @@ export function RevenueAnalyticsPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-transparent">
-                  <TableHead className="font-semibold">Rank</TableHead>
-                  <TableHead className="font-semibold">School</TableHead>
-                  <TableHead className="font-semibold">Plan</TableHead>
-                  <TableHead className="font-semibold">Students</TableHead>
-                  <TableHead className="font-semibold">Monthly Revenue</TableHead>
-                  <TableHead className="font-semibold">Growth</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(topSchools || []).map((school: any, index: number) => (
-                  <TableRow key={school.name} className="border-border/50">
-                    <TableCell>
-                      <div
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold",
-                          index < 3
-                            ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white"
-                            : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {index + 1}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white text-[10px] font-bold">
-                          {school.name
-                            .split(" ")
-                            .map((w: string) => w[0])
-                            .join("")
-                            .slice(0, 2)}
-                        </div>
-                        <span className="text-sm font-medium">{school.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "text-[10px] font-medium",
-                          school.plan === "Enterprise" &&
-                            "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
-                          school.plan === "Professional" &&
-                            "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-                          school.plan === "Starter" &&
-                            "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                        )}
-                      >
-                        {school.plan}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {(school.students_count ?? school.students ?? 0).toLocaleString()}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-semibold">
-                        {formatCurrency(school.revenue)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div
-                        className={cn(
-                          "flex items-center gap-1 text-xs font-semibold",
-                          school.growth >= 0
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-red-600 dark:text-red-400"
-                        )}
-                      >
-                        {school.growth >= 0 ? (
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        ) : (
-                          <ArrowDownRight className="h-3.5 w-3.5" />
-                        )}
-                        {Math.abs(school.growth)}%
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {(() => {
+              const topSchoolsList = topSchools || []
+              const topTotalPages = Math.ceil(topSchoolsList.length / topPerPage)
+              const topPaginated = topSchoolsList.slice((topPage - 1) * topPerPage, topPage * topPerPage)
+
+              return (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-transparent">
+                        <TableHead className="font-semibold">Rank</TableHead>
+                        <TableHead className="font-semibold">School</TableHead>
+                        <TableHead className="font-semibold">Plan</TableHead>
+                        <TableHead className="font-semibold">Students</TableHead>
+                        <TableHead className="font-semibold">Monthly Revenue</TableHead>
+                        <TableHead className="font-semibold">Growth</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {topPaginated.map((school: any, index: number) => {
+                        const rank = (topPage - 1) * topPerPage + index + 1
+                        return (
+                          <TableRow key={school.name} className="border-border/50">
+                            <TableCell>
+                              <div
+                                className={cn(
+                                  "flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold",
+                                  rank <= 3
+                                    ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white"
+                                    : "bg-muted text-muted-foreground"
+                                )}
+                              >
+                                {rank}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white text-[10px] font-bold">
+                                  {school.name
+                                    .split(" ")
+                                    .map((w: string) => w[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                                </div>
+                                <span className="text-sm font-medium">{school.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className={cn(
+                                  "text-[10px] font-medium",
+                                  school.plan === "Enterprise" &&
+                                    "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+                                  school.plan === "Professional" &&
+                                    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+                                  school.plan === "Starter" &&
+                                    "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                )}
+                              >
+                                {school.plan}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">
+                                {(school.students_count ?? school.students ?? 0).toLocaleString()}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm font-semibold">
+                                {formatCurrency(school.revenue)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div
+                                className={cn(
+                                  "flex items-center gap-1 text-xs font-semibold",
+                                  school.growth >= 0
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-red-600 dark:text-red-400"
+                                )}
+                              >
+                                {school.growth >= 0 ? (
+                                  <ArrowUpRight className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ArrowDownRight className="h-3.5 w-3.5" />
+                                )}
+                                {Math.abs(school.growth)}%
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                  <TablePagination
+                    currentPage={topPage}
+                    totalPages={topTotalPages}
+                    totalItems={topSchoolsList.length}
+                    perPage={topPerPage}
+                    onPageChange={setTopPage}
+                  />
+                </>
+              )
+            })()}
           </CardContent>
         </Card>
       </motion.div>

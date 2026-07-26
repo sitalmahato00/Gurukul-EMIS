@@ -68,12 +68,21 @@ function mapNotification(raw: any): NotificationItem {
 }
 
 export function AdminNotificationsPage() {
-  const { data: rawNotifications, isLoading } = useNotifications()
+  const { data: rawNotificationsRaw, isLoading } = useNotifications()
   const markRead = useMarkNotificationRead()
   const markAllRead = useMarkAllNotificationsRead()
 
-  const notifications: NotificationItem[] = (Array.isArray(rawNotifications) ? rawNotifications : []).map(mapNotification)
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const rawNotifications: any[] = Array.isArray(rawNotificationsRaw)
+    ? rawNotificationsRaw
+    : Array.isArray(rawNotificationsRaw?.notifications)
+      ? rawNotificationsRaw.notifications
+      : Array.isArray(rawNotificationsRaw?.notifications?.data)
+        ? rawNotificationsRaw.notifications.data
+        : Array.isArray(rawNotificationsRaw?.data)
+          ? rawNotificationsRaw.data
+          : []
+  const notifications: NotificationItem[] = rawNotifications.map(mapNotification)
+  const unreadCount = typeof rawNotificationsRaw?.unread_count === "number" ? rawNotificationsRaw.unread_count : notifications.filter((n) => !n.read).length
 
   const handleMarkAllRead = () => {
     markAllRead.mutate()
